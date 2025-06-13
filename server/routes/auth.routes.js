@@ -1,13 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const { signup, login, logout } = require('../controllers/auth.controller');
-// Add to your auth.routes.js
 const { protect } = require('../middleware/auth.middleware.js');
 
-router.get('/home', protect, (req, res) => {
-  res.json({
+// This route should be in auth routes since it's being called from frontend
+router.get('/verify', protect, (req, res) => {
+  res.status(200).json({
     authenticated: true,
-    user: req.user // Use the freshly attached user data
+    user: {
+      email: req.user.email,
+      username: req.user.username,
+      _id: req.user._id
+    }
   });
 });
 

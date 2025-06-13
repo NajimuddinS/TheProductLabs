@@ -20,78 +20,80 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false); // New state to track initialization
 
   // Check if user is authenticated on app load
   useEffect(() => {
     checkAuthStatus();
   }, []);
 
-const checkAuthStatus = async () => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/home`);
-    console.log('Auth check response:', response.data); // Debug logging
-    
-    if (response.data?.authenticated) {
-      setUser({ 
-        authenticated: true,
-        email: response.data.user.email,
-        username: response.data.user.username
-      });
-    } else {
+  const checkAuthStatus = async () => {
+    try {
+      const { data } = await axios.get(`${API_BASE_URL}/auth/verify`);
+      
+      if (data?.authenticated) {
+        setUser({
+          authenticated: true,
+          email: data.user.email,
+          username: data.user.username
+        });
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error.response?.data || error.message);
       setUser(null);
+    } finally {
+      setLoading(false);
+      setIsInitialized(true); // Mark as initialized after first auth check
     }
-  } catch (error) {
-    console.error('Auth check error:', error);
-    setUser(null);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-const login = async (email, password) => {
-  setLoading(true);
-  setError('');
-  try {
-    const response = await axios.post(`${API_BASE_URL}/auth/login`, {
-      email,
-      password
-    });
-    
-    setUser({ 
-      authenticated: true,
-      email: response.data.data.email,
-      username: response.data.data.username
-    });
-    
-    return { success: true }; // Ensure consistent return shape
-  } catch (error) {
-    const errorMessage = error.response?.data?.message || 'Login failed';
-    setError(errorMessage);
-    return { success: false, error: errorMessage }; // Ensure consistent return shape
-  } finally {
-    setLoading(false);
-  }
-};
+  const login = async (email, password) => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+        email,
+        password
+      });
+      
+      const userData = {
+        authenticated: true,
+        email: response.data.data.email,
+        username: response.data.data.username
+      };
+      
+      setUser(userData);
+      return { success: true, user: userData };
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Login failed';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
 
-const signup = async (username, email, password) => {
-  setLoading(true);
-  setError('');
-  try {
-    await axios.post(`${API_BASE_URL}/auth/signup`, {
-      username,
-      email,
-      password
-    });
-    
-    return { success: true }; // Ensure consistent return shape
-  } catch (error) {
-    const errorMessage = error.response?.data?.message || 'Signup failed';
-    setError(errorMessage);
-    return { success: false, error: errorMessage }; // Ensure consistent return shape
-  } finally {
-    setLoading(false);
-  }
-};
+  const signup = async (username, email, password) => {
+    setLoading(true);
+    setError('');
+    try {
+      await axios.post(`${API_BASE_URL}/auth/signup`, {
+        username,
+        email,
+        password
+      });
+      
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Signup failed';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const logout = async () => {
     try {
@@ -107,10 +109,12 @@ const signup = async (username, email, password) => {
     user,
     loading,
     error,
+    isInitialized, // Expose initialization state
     login,
     signup,
     logout,
-    clearError: () => setError('')
+    clearError: () => setError(''),
+    checkAuthStatus // Expose for manual refresh if needed
   };
 
   return (
