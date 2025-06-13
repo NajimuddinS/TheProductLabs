@@ -74,7 +74,7 @@ const AuthForm = () => {
               <Navigation className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-              RouteNavigator
+              RouteMate
             </h1>
             <p className="text-slate-400 text-sm">
               Discover the world, one route at a time
@@ -87,7 +87,7 @@ const AuthForm = () => {
               <div className="flex items-center justify-center space-x-2 mb-4">
                 <MapPin className="w-6 h-6 text-blue-400" />
                 <h2 className="text-2xl font-bold text-white">
-                  {isLogin ? 'Welcome Back' : 'Start Your Journey'}
+                  {isLogin ? 'Discover' : 'Start Your Journey'}
                 </h2>
               </div>
               <p className="text-slate-300 text-sm">

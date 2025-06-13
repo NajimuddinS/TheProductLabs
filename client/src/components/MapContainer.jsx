@@ -1,35 +1,46 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
-import { useAuth } from '../contexts/AuthContext';
-import { 
-  Navigation, 
-  LogOut, 
-  MousePointer, 
-  Search, 
-  MapPin, 
-  X, 
-  Clock, 
+import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMapEvents,
+} from "react-leaflet";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  Navigation,
+  LogOut,
+  MousePointer,
+  Search,
+  MapPin,
+  X,
+  Clock,
   Route,
-  Locate
-} from 'lucide-react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
-import 'leaflet-routing-machine';
+  Locate,
+} from "lucide-react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
+import "leaflet-routing-machine";
 
 // Mock loading spinner
-const LoadingSpinner = ({ size = 'md' }) => (
-  <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${
-    size === 'sm' ? 'h-4 w-4' : 'h-6 w-6'
-  }`}></div>
+const LoadingSpinner = ({ size = "md" }) => (
+  <div
+    className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${
+      size === "sm" ? "h-4 w-4" : "h-6 w-6"
+    }`}
+  ></div>
 );
 
 // Fix for default markers in Leaflet with React
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
 const createCustomIcon = (color, label) => {
@@ -74,16 +85,16 @@ const createCustomIcon = (color, label) => {
         clip-path: polygon(50% 100%, 0 0, 100% 0);
       "></div>
     </div>`,
-    className: 'custom-div-icon',
+    className: "custom-div-icon",
     iconSize: [30, 42],
     iconAnchor: [15, 42],
-    popupAnchor: [0, -36]
+    popupAnchor: [0, -36],
   });
 };
 
 const currentLocationIcon = L.divIcon({
   html: '<div style="background-color: #3b82f6; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
-  className: 'current-location-icon',
+  className: "current-location-icon",
   iconSize: [16, 16],
   iconAnchor: [8, 8],
 });
@@ -92,7 +103,7 @@ const currentLocationIcon = L.divIcon({
 const MapClickHandler = ({ onMapClick, inputMode }) => {
   useMapEvents({
     click: (e) => {
-      if (inputMode === 'click') {
+      if (inputMode === "click") {
         onMapClick(e.latlng);
       }
     },
@@ -115,18 +126,18 @@ function debounce(func, wait) {
 
 const MapComponent = () => {
   const { logout } = useAuth();
-  const [center, setCenter] = useState([28.6139, 77.2090]);
-  const [zoom, setZoom] = useState(6);
-  
+  const [center, setCenter] = useState([12.9716, 77.5946]);
+  const [zoom, setZoom] = useState(10);
+
   const [currentLocation, setCurrentLocation] = useState(null);
   const [pointA, setPointA] = useState(null);
   const [pointB, setPointB] = useState(null);
   const [routeInfo, setRouteInfo] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [inputMode, setInputMode] = useState('click');
-  const [searchA, setSearchA] = useState('');
-  const [searchB, setSearchB] = useState('');
+  const [error, setError] = useState("");
+  const [inputMode, setInputMode] = useState("click");
+  const [searchA, setSearchA] = useState("");
+  const [searchB, setSearchB] = useState("");
   const [suggestionsA, setSuggestionsA] = useState([]);
   const [suggestionsB, setSuggestionsB] = useState([]);
   const [showSuggestionsA, setShowSuggestionsA] = useState(false);
@@ -158,7 +169,10 @@ const MapComponent = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const location = [position.coords.latitude, position.coords.longitude];
+          const location = [
+            position.coords.latitude,
+            position.coords.longitude,
+          ];
           setCurrentLocation(location);
           setPointA(location);
           setCenter(location);
@@ -166,33 +180,36 @@ const MapComponent = () => {
           setLoading(false);
         },
         (error) => {
-          console.error('Error getting location:', error);
-          setError('Unable to get current location');
+          console.error("Error getting location:", error);
+          setError("Unable to get current location");
           setLoading(false);
         }
       );
     } else {
-      setError('Geolocation is not supported by this browser');
+      setError("Geolocation is not supported by this browser");
       setLoading(false);
     }
   };
 
-  const handleMapClick = useCallback((latlng) => {
-    if (inputMode !== 'click') return;
-    
-    const clickedPoint = [latlng.lat, latlng.lng];
-    
-    if (!pointA) {
-      setPointA(clickedPoint);
-    } else if (!pointB) {
-      setPointB(clickedPoint);
-    } else {
-      setPointA(clickedPoint);
-      setPointB(null);
-      setRouteInfo(null);
-      removeRoutingControl();
-    }
-  }, [pointA, pointB, inputMode]);
+  const handleMapClick = useCallback(
+    (latlng) => {
+      if (inputMode !== "click") return;
+
+      const clickedPoint = [latlng.lat, latlng.lng];
+
+      if (!pointA) {
+        setPointA(clickedPoint);
+      } else if (!pointB) {
+        setPointB(clickedPoint);
+      } else {
+        setPointA(clickedPoint);
+        setPointB(null);
+        setRouteInfo(null);
+        removeRoutingControl();
+      }
+    },
+    [pointA, pointB, inputMode]
+  );
 
   const removeRoutingControl = () => {
     if (routingControlRef.current) {
@@ -206,17 +223,17 @@ const MapComponent = () => {
 
   const calculateRoute = useCallback(() => {
     if (!pointA || !pointB) return;
-    
+
     setLoading(true);
     removeRoutingControl();
-    
+
     const map = mapRef.current;
     if (!map) return;
-    
+
     routingControlRef.current = L.Routing.control({
       waypoints: [
         L.latLng(pointA[0], pointA[1]),
-        L.latLng(pointB[0], pointB[1])
+        L.latLng(pointB[0], pointB[1]),
       ],
       routeWhileDragging: false,
       showAlternatives: false,
@@ -225,24 +242,24 @@ const MapComponent = () => {
       fitSelectedRoutes: true,
       show: false,
       router: L.Routing.osrmv1({
-        serviceUrl: 'https://router.project-osrm.org/route/v1'
-      })
+        serviceUrl: "https://router.project-osrm.org/route/v1",
+      }),
     }).addTo(map);
-    
-    routingControlRef.current.on('routesfound', (e) => {
+
+    routingControlRef.current.on("routesfound", (e) => {
       const routes = e.routes;
       if (routes && routes.length > 0) {
         const route = routes[0];
         setRouteInfo({
           distance: (route.summary.totalDistance / 1000).toFixed(2),
-          duration: Math.round(route.summary.totalTime / 60)
+          duration: Math.round(route.summary.totalTime / 60),
         });
       }
       setLoading(false);
     });
-    
-    routingControlRef.current.on('routingerror', (e) => {
-      setError('Failed to calculate route');
+
+    routingControlRef.current.on("routingerror", (e) => {
+      setError("Failed to calculate route");
       setLoading(false);
     });
   }, [pointA, pointB]);
@@ -258,23 +275,27 @@ const MapComponent = () => {
       setSuggestions([]);
       return;
     }
-    
+
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        query
+      )}&limit=5`;
       const response = await fetch(url);
       const data = await response.json();
-      
+
       if (data && data.length > 0) {
-        setSuggestions(data.map(item => ({
-          displayName: item.display_name,
-          lat: parseFloat(item.lat),
-          lon: parseFloat(item.lon)
-        })));
+        setSuggestions(
+          data.map((item) => ({
+            displayName: item.display_name,
+            lat: parseFloat(item.lat),
+            lon: parseFloat(item.lon),
+          }))
+        );
       } else {
         setSuggestions([]);
       }
     } catch (error) {
-      console.error('Geocoding error:', error);
+      console.error("Geocoding error:", error);
       setSuggestions([]);
     }
   };
@@ -313,30 +334,34 @@ const MapComponent = () => {
   const handleSearchSubmit = async (e) => {
     if (e) e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
     setShowSuggestionsA(false);
     setShowSuggestionsB(false);
-    
+
     try {
       if (searchA && !pointA) {
         const locationA = await geocodeLocation(searchA);
         if (locationA) {
           setPointA(locationA);
         } else {
-          setError('Could not find location A');
+          setError("Could not find location A");
         }
       }
-      
+
       if (searchB && !pointB) {
         const locationB = await geocodeLocation(searchB);
         if (locationB) {
           setPointB(locationB);
         } else {
-          setError(prev => prev ? `${prev}, Could not find location B` : 'Could not find location B');
+          setError((prev) =>
+            prev
+              ? `${prev}, Could not find location B`
+              : "Could not find location B"
+          );
         }
       }
     } catch (error) {
-      setError('Failed to find locations');
+      setError("Failed to find locations");
     } finally {
       setLoading(false);
     }
@@ -344,17 +369,19 @@ const MapComponent = () => {
 
   const geocodeLocation = async (query) => {
     if (!query.trim()) return null;
-    
+
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        query
+      )}&limit=1`;
       const response = await fetch(url);
       const data = await response.json();
-      
+
       if (data && data.length > 0) {
         return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
       }
     } catch (error) {
-      console.error('Geocoding error:', error);
+      console.error("Geocoding error:", error);
     }
     return null;
   };
@@ -363,9 +390,9 @@ const MapComponent = () => {
     setPointA(currentLocation);
     setPointB(null);
     setRouteInfo(null);
-    setSearchA('');
-    setSearchB('');
-    setError('');
+    setSearchA("");
+    setSearchB("");
+    setError("");
     setSuggestionsA([]);
     setSuggestionsB([]);
     removeRoutingControl();
@@ -385,7 +412,9 @@ const MapComponent = () => {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   RouteMate
                 </h1>
-                <p className="text-xs text-gray-500 -mt-1">Smart Route Planning</p>
+                <p className="text-xs text-gray-500 -mt-1">
+                  Smart Route Planning
+                </p>
               </div>
             </div>
             <button
@@ -406,22 +435,22 @@ const MapComponent = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
-                  onClick={() => setInputMode('click')}
+                  onClick={() => setInputMode("click")}
                   className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-                    inputMode === 'click'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-800'
+                    inputMode === "click"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600 hover:text-gray-800"
                   }`}
                 >
                   <MousePointer className="w-4 h-4" />
                   <span>Click Mode</span>
                 </button>
                 <button
-                  onClick={() => setInputMode('search')}
+                  onClick={() => setInputMode("search")}
                   className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-                    inputMode === 'search'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-800'
+                    inputMode === "search"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600 hover:text-gray-800"
                   }`}
                 >
                   <Search className="w-4 h-4" />
@@ -447,7 +476,7 @@ const MapComponent = () => {
               </div>
             </div>
 
-            {inputMode === 'search' && (
+            {inputMode === "search" && (
               <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="relative">
@@ -461,8 +490,12 @@ const MapComponent = () => {
                       value={searchA}
                       onChange={handleSearchAChange}
                       onFocus={() => setShowSuggestionsA(true)}
-                      onBlur={() => setTimeout(() => setShowSuggestionsA(false), 200)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSearchSubmit(e)}
+                      onBlur={() =>
+                        setTimeout(() => setShowSuggestionsA(false), 200)
+                      }
+                      onKeyPress={(e) =>
+                        e.key === "Enter" && handleSearchSubmit(e)
+                      }
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm placeholder-gray-500"
                     />
                     {showSuggestionsA && suggestionsA.length > 0 && (
@@ -471,7 +504,9 @@ const MapComponent = () => {
                           <div
                             key={index}
                             className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 border-b border-gray-100 last:border-b-0"
-                            onMouseDown={() => selectSuggestion(suggestion, true)}
+                            onMouseDown={() =>
+                              selectSuggestion(suggestion, true)
+                            }
                           >
                             {suggestion.displayName}
                           </div>
@@ -490,8 +525,12 @@ const MapComponent = () => {
                       value={searchB}
                       onChange={handleSearchBChange}
                       onFocus={() => setShowSuggestionsB(true)}
-                      onBlur={() => setTimeout(() => setShowSuggestionsB(false), 200)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSearchSubmit(e)}
+                      onBlur={() =>
+                        setTimeout(() => setShowSuggestionsB(false), 200)
+                      }
+                      onKeyPress={(e) =>
+                        e.key === "Enter" && handleSearchSubmit(e)
+                      }
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm placeholder-gray-500"
                     />
                     {showSuggestionsB && suggestionsB.length > 0 && (
@@ -500,7 +539,9 @@ const MapComponent = () => {
                           <div
                             key={index}
                             className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 border-b border-gray-100 last:border-b-0"
-                            onMouseDown={() => selectSuggestion(suggestion, false)}
+                            onMouseDown={() =>
+                              selectSuggestion(suggestion, false)
+                            }
                           >
                             {suggestion.displayName}
                           </div>
@@ -523,17 +564,19 @@ const MapComponent = () => {
             )}
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              {inputMode === 'click' && (
+              {inputMode === "click" && (
                 <div className="flex items-center space-x-2 text-sm text-gray-600 bg-blue-50 px-3 py-2 rounded-lg">
                   <MousePointer className="w-4 h-4 text-blue-500" />
                   <span>
-                    {!pointA ? 'Click on the map to set starting point' :
-                     !pointB ? 'Click on the map to set destination' :
-                     'Click anywhere to start over'}
+                    {!pointA
+                      ? "Click on the map to set starting point"
+                      : !pointB
+                      ? "Click on the map to set destination"
+                      : "Click anywhere to start over"}
                   </span>
                 </div>
               )}
-              
+
               {routeInfo && (
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg">
@@ -542,7 +585,9 @@ const MapComponent = () => {
                   </div>
                   <div className="flex items-center space-x-2 bg-green-50 text-green-700 px-4 py-2 rounded-lg">
                     <Clock className="w-4 h-4" />
-                    <span className="font-medium">~{routeInfo.duration} min</span>
+                    <span className="font-medium">
+                      ~{routeInfo.duration} min
+                    </span>
                   </div>
                 </div>
               )}
@@ -557,13 +602,15 @@ const MapComponent = () => {
           </div>
         </div>
       </div>
-      
+
       <div className="flex-1 relative">
         {loading && (
           <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-[1000] bg-white rounded-xl shadow-lg p-4 border border-gray-200">
             <div className="flex items-center space-x-3">
               <LoadingSpinner size="sm" />
-              <span className="text-sm font-medium text-gray-700">Loading route...</span>
+              <span className="text-sm font-medium text-gray-700">
+                Loading route...
+              </span>
             </div>
           </div>
         )}
@@ -572,14 +619,14 @@ const MapComponent = () => {
           ref={mapRef}
           center={center}
           zoom={zoom}
-          style={{ height: '100%', width: '100%' }}
+          style={{ height: "100%", width: "100%" }}
           className="z-0"
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
-          
+
           <MapClickHandler onMapClick={handleMapClick} inputMode={inputMode} />
 
           {currentLocation && (
@@ -589,13 +636,13 @@ const MapComponent = () => {
           )}
 
           {pointA && pointA !== currentLocation && (
-            <Marker position={pointA} icon={createCustomIcon('#ef4444', 'A')}>
+            <Marker position={pointA} icon={createCustomIcon("#ef4444", "A")}>
               <Popup>Point A</Popup>
             </Marker>
           )}
 
           {pointB && (
-            <Marker position={pointB} icon={createCustomIcon('#10b981', 'B')}>
+            <Marker position={pointB} icon={createCustomIcon("#10b981", "B")}>
               <Popup>Point B</Popup>
             </Marker>
           )}
