@@ -5,12 +5,13 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const cors = require('cors');
 
-app.use(cookieParser());
 const authRoutes = require('./routes/auth.routes');
 const homeRoutes = require('./routes/home.routes');
 
 // Initialize app
 const app = express();
+app.use(cookieParser());
+
 
 app.use((req, res, next) => {
   console.log('Cookies received:', req.cookies);
