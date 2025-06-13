@@ -1,8 +1,8 @@
 import { useAuth } from '../contexts/AuthContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation,Navigate } from 'react-router-dom';
 import LoadingSpinner from './LoadingSpinner';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children,redirectPath='/login' }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -15,7 +15,7 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />; // Router will redirect to login
+    return <Navigate to={redirectPath} state={{ from: location }} replace />; // Router will redirect to login
   }
 
   return children;

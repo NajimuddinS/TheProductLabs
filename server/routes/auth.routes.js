@@ -8,8 +8,7 @@ router.get('/home', protect, (req, res) => {
   res.status(200).json({
     success: true,
     authenticated: true,
-    user: {
-      id: req.user._id,
+    user: {  // This matches your frontend expectation
       email: req.user.email,
       username: req.user.username
     }

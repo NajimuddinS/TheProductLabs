@@ -29,7 +29,9 @@ export const AuthProvider = ({ children }) => {
 const checkAuthStatus = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/home`);
-    if (response.data && response.data.authenticated) {
+    console.log('Auth check response:', response.data); // Debug logging
+    
+    if (response.data?.authenticated) {
       setUser({ 
         authenticated: true,
         email: response.data.user.email,
@@ -39,6 +41,7 @@ const checkAuthStatus = async () => {
       setUser(null);
     }
   } catch (error) {
+    console.error('Auth check error:', error);
     setUser(null);
   } finally {
     setLoading(false);
@@ -54,42 +57,41 @@ const login = async (email, password) => {
       password
     });
     
-    if (response.data && response.data.authenticated) {
-      setUser({ 
-        authenticated: true, 
-        email: response.data.email,
-        // any other user data you need
-      });
-      return { success: true };
-    }
+    setUser({ 
+      authenticated: true,
+      email: response.data.data.email,
+      username: response.data.data.username
+    });
+    
+    return { success: true }; // Ensure consistent return shape
   } catch (error) {
-    // error handling
+    const errorMessage = error.response?.data?.message || 'Login failed';
+    setError(errorMessage);
+    return { success: false, error: errorMessage }; // Ensure consistent return shape
   } finally {
     setLoading(false);
   }
 };
 
-  const signup = async (username, email, password) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await axios.post(`${API_BASE_URL}/auth/signup`, {
-        username,
-        email,
-        password
-      });
-      
-      if (response.data) {
-        return { success: true };
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Signup failed';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setLoading(false);
-    }
-  };
+const signup = async (username, email, password) => {
+  setLoading(true);
+  setError('');
+  try {
+    await axios.post(`${API_BASE_URL}/auth/signup`, {
+      username,
+      email,
+      password
+    });
+    
+    return { success: true }; // Ensure consistent return shape
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || 'Signup failed';
+    setError(errorMessage);
+    return { success: false, error: errorMessage }; // Ensure consistent return shape
+  } finally {
+    setLoading(false);
+  }
+};
 
   const logout = async () => {
     try {

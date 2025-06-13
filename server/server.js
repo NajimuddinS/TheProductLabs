@@ -11,12 +11,19 @@ const homeRoutes = require('./routes/home.routes');
 // Initialize app
 const app = express();
 
+app.use((req, res, next) => {
+  console.log('Cookies received:', req.cookies);
+  next();
+});
+
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: true,
-  credentials: true
+  origin: 'http://localhost:5173', // Replace with actual frontend URL
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Replace the mongoose.connect part in server.js with:
