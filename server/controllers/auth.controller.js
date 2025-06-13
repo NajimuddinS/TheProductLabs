@@ -29,7 +29,9 @@ const signup = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 86400000, // 1 day in ms
+      path: "/", // Critical for cookie to be sent
+      domain: process.env.COOKIE_DOMAIN || undefined,
     });
 
     res.status(201).json({
@@ -82,7 +84,9 @@ const login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 86400000, // 1 day in ms
+      path: "/", // Critical for cookie to be sent
+      domain: process.env.COOKIE_DOMAIN || undefined,
     });
 
     res.status(200).json({

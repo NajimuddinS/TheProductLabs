@@ -5,13 +5,9 @@ const { signup, login, logout } = require('../controllers/auth.controller');
 const { protect } = require('../middleware/auth.middleware.js');
 
 router.get('/home', protect, (req, res) => {
-  res.status(200).json({
-    success: true,
+  res.json({
     authenticated: true,
-    user: {  // This matches your frontend expectation
-      email: req.user.email,
-      username: req.user.username
-    }
+    user: req.user // Use the freshly attached user data
   });
 });
 
