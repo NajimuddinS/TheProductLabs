@@ -1,6 +1,6 @@
-const User = require('../models/user.js');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const User = require("../models/user.js");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 
 // @desc    Register a new user
 // @route   POST /api/auth/signup
@@ -8,42 +8,43 @@ const bcrypt = require('bcryptjs');
 const signup = async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    
+
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'User already exists' 
+        message: "User already exists",
       });
     }
-    
+
     // Create new user
     const user = await User.create({ username, email, password });
-    
+
     // Generate JWT token
     const token = generateToken(user._id);
-    
+
     // Set cookie
-    res.cookie('jwt', token, {
+    res.cookie("jwt", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000,
     });
-    
+
     res.status(201).json({
       success: true,
       data: {
         _id: user._id,
         username: user.username,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
   } catch (err) {
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: err.message 
+      message: "Server error",
+      error: err.message,
     });
   }
 };
@@ -54,48 +55,49 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Invalid credentials' 
+        message: "Invalid credentials",
       });
     }
-    
+
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Invalid credentials' 
+        message: "Invalid credentials",
       });
     }
-    
+
     // Generate JWT token
     const token = generateToken(user._id);
-    
+
     // Set cookie
-    res.cookie('jwt', token, {
+    res.cookie("jwt", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000,
     });
-    
+
     res.status(200).json({
       success: true,
       data: {
         _id: user._id,
         username: user.username,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
   } catch (err) {
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: err.message 
+      message: "Server error",
+      error: err.message,
     });
   }
 };
@@ -104,21 +106,21 @@ const login = async (req, res) => {
 // @route   POST /api/auth/logout
 // @access  Private
 const logout = (req, res) => {
-  res.cookie('jwt', '', {
+  res.cookie("jwt", "", {
     httpOnly: true,
-    expires: new Date(0)
+    expires: new Date(0),
   });
-  
-  res.status(200).json({ 
+
+  res.status(200).json({
     success: true,
-    message: 'Logged out successfully' 
+    message: "Logged out successfully",
   });
 };
 
 // Generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '1d'
+    expiresIn: "1d",
   });
 };
 
