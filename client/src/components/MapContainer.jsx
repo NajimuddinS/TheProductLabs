@@ -23,7 +23,6 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 import "leaflet-routing-machine";
 
-// Mock loading spinner
 const LoadingSpinner = ({ size = "md" }) => (
   <div
     className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${
@@ -32,7 +31,6 @@ const LoadingSpinner = ({ size = "md" }) => (
   ></div>
 );
 
-// Fix for default markers in Leaflet with React
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -99,7 +97,6 @@ const currentLocationIcon = L.divIcon({
   iconAnchor: [8, 8],
 });
 
-// Component to handle map clicks
 const MapClickHandler = ({ onMapClick, inputMode }) => {
   useMapEvents({
     click: (e) => {
@@ -111,7 +108,6 @@ const MapClickHandler = ({ onMapClick, inputMode }) => {
   return null;
 };
 
-// Custom debounce function
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
