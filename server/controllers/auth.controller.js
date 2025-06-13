@@ -110,9 +110,14 @@ const login = async (req, res) => {
 // @route   POST /api/auth/logout
 // @access  Private
 const logout = (req, res) => {
+  // Clear the JWT cookie with the SAME settings used when setting it
   res.cookie("jwt", "", {
     httpOnly: true,
-    expires: new Date(0),
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 0, // Set to 0 instead of using expires
+    path: "/", // Must match the path used when setting
+    domain: process.env.COOKIE_DOMAIN || undefined, // Must match domain setting
   });
 
   res.status(200).json({

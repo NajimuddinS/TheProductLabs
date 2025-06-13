@@ -10,17 +10,17 @@ const homeRoutes = require('./routes/home.routes');
 
 // Initialize app
 const app = express();
-app.use(cookieParser());
 
+// Middleware
+app.use(express.json());
+app.use(cookieParser()); // Only call this once
 
+// Debug middleware (optional - remove in production)
 app.use((req, res, next) => {
   console.log('Cookies received:', req.cookies);
   next();
 });
 
-// Middleware
-app.use(express.json());
-app.use(cookieParser());
 app.use(cors({
   origin: 'http://localhost:5173', // Replace with actual frontend URL
   credentials: true,
@@ -28,7 +28,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Replace the mongoose.connect part in server.js with:
+// Connect to database
 connectDB();
 
 // Routes
