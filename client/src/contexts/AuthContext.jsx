@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/axios';
 
 const AuthContext = createContext();
 
@@ -10,11 +10,6 @@ export const useAuth = () => {
   }
   return context;
 };
-
-const API_BASE_URL = 'https://theproductlabs.onrender.com/api';
-
-// Configure axios defaults
-axios.defaults.withCredentials = true;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -29,7 +24,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuthStatus = async () => {
     try {
-      const { data } = await axios.get(`${API_BASE_URL}/auth/verify`);
+      const { data } = await apiClient.get('/auth/verify');
       
       if (data?.authenticated) {
         setUser({
@@ -53,7 +48,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+      const response = await apiClient.post('/auth/login', {
         email,
         password
       });
@@ -79,7 +74,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError('');
     try {
-      await axios.post(`${API_BASE_URL}/auth/signup`, {
+      await apiClient.post('/auth/signup', {
         username,
         email,
         password
@@ -97,7 +92,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post(`${API_BASE_URL}/auth/logout`);
+      await apiClient.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
