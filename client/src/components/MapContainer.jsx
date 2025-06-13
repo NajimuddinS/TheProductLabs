@@ -1,38 +1,83 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { useAuth } from '../contexts/AuthContext';
+import { 
+  Navigation, 
+  LogOut, 
+  MousePointer, 
+  Search, 
+  MapPin, 
+  X, 
+  Clock, 
+  Route,
+  Locate
+} from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useAuth } from '../contexts/AuthContext';
-import LoadingSpinner from './LoadingSpinner';
+import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+import 'leaflet-routing-machine';
+
+// Mock loading spinner
+const LoadingSpinner = ({ size = 'md' }) => (
+  <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${
+    size === 'sm' ? 'h-4 w-4' : 'h-6 w-6'
+  }`}></div>
+);
 
 // Fix for default markers in Leaflet with React
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Custom icons for different markers
 const createCustomIcon = (color, label) => {
   return L.divIcon({
     html: `<div style="
-      background-color: ${color};
-      color: white;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 14px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      border: 2px solid white;
-    ">${label}</div>`,
+      position: relative;
+      width: 30px;
+      height: 42px;
+    ">
+      <div style="
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 24px;
+        height: 24px;
+        background-color: ${color};
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      ">
+        <div style="
+          transform: rotate(45deg);
+          color: white;
+          font-weight: bold;
+          font-size: 12px;
+          text-align: center;
+          width: 100%;
+        ">${label}</div>
+      </div>
+      <div style="
+        position: absolute;
+        bottom: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 6px;
+        height: 6px;
+        background-color: ${color};
+        clip-path: polygon(50% 100%, 0 0, 100% 0);
+      "></div>
+    </div>`,
     className: 'custom-div-icon',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
+    iconSize: [30, 42],
+    iconAnchor: [15, 42],
+    popupAnchor: [0, -36]
   });
 };
 
@@ -55,6 +100,19 @@ const MapClickHandler = ({ onMapClick, inputMode }) => {
   return null;
 };
 
+// Custom debounce function
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 const MapComponent = () => {
   const { logout } = useAuth();
   const [center, setCenter] = useState([28.6139, 77.2090]);
@@ -63,20 +121,37 @@ const MapComponent = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [pointA, setPointA] = useState(null);
   const [pointB, setPointB] = useState(null);
-  const [route, setRoute] = useState(null);
   const [routeInfo, setRouteInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [inputMode, setInputMode] = useState('click'); // 'click' or 'search'
+  const [inputMode, setInputMode] = useState('click');
   const [searchA, setSearchA] = useState('');
   const [searchB, setSearchB] = useState('');
+  const [suggestionsA, setSuggestionsA] = useState([]);
+  const [suggestionsB, setSuggestionsB] = useState([]);
+  const [showSuggestionsA, setShowSuggestionsA] = useState(false);
+  const [showSuggestionsB, setShowSuggestionsB] = useState(false);
 
   const mapRef = useRef();
+  const routingControlRef = useRef();
+  const searchARef = useRef();
+  const searchBRef = useRef();
 
   // Get current location on component mount
   useEffect(() => {
     getCurrentLocation();
   }, []);
+
+  // Create debounced functions
+  const debouncedFetchSuggestionsA = useCallback(
+    debounce((query) => fetchSuggestions(query, setSuggestionsA), 300),
+    []
+  );
+
+  const debouncedFetchSuggestionsB = useCallback(
+    debounce((query) => fetchSuggestions(query, setSuggestionsB), 300),
+    []
+  );
 
   const getCurrentLocation = () => {
     setLoading(true);
@@ -112,50 +187,65 @@ const MapComponent = () => {
     } else if (!pointB) {
       setPointB(clickedPoint);
     } else {
-      // Reset and start over
       setPointA(clickedPoint);
       setPointB(null);
-      setRoute(null);
       setRouteInfo(null);
+      removeRoutingControl();
     }
   }, [pointA, pointB, inputMode]);
 
-  // Simple route calculation (straight line)
-  // For production, you'd want to use a routing service like OpenRouteService, GraphHopper, or OSRM
+  const removeRoutingControl = () => {
+    if (routingControlRef.current) {
+      const map = mapRef.current;
+      if (map) {
+        map.removeControl(routingControlRef.current);
+        routingControlRef.current = null;
+      }
+    }
+  };
+
   const calculateRoute = useCallback(() => {
     if (!pointA || !pointB) return;
     
     setLoading(true);
+    removeRoutingControl();
     
-    // Simple straight line route
-    const routeCoordinates = [pointA, pointB];
-    setRoute(routeCoordinates);
+    const map = mapRef.current;
+    if (!map) return;
     
-    // Calculate distance using Haversine formula
-    const distance = calculateDistance(pointA[0], pointA[1], pointB[0], pointB[1]);
-    // Estimate time based on average speed (50 km/h)
-    const estimatedTime = Math.round((distance / 50) * 60);
+    routingControlRef.current = L.Routing.control({
+      waypoints: [
+        L.latLng(pointA[0], pointA[1]),
+        L.latLng(pointB[0], pointB[1])
+      ],
+      routeWhileDragging: false,
+      showAlternatives: false,
+      addWaypoints: false,
+      draggableWaypoints: false,
+      fitSelectedRoutes: true,
+      show: false,
+      router: L.Routing.osrmv1({
+        serviceUrl: 'https://router.project-osrm.org/route/v1'
+      })
+    }).addTo(map);
     
-    setRouteInfo({
-      distance: distance.toFixed(2),
-      duration: estimatedTime
+    routingControlRef.current.on('routesfound', (e) => {
+      const routes = e.routes;
+      if (routes && routes.length > 0) {
+        const route = routes[0];
+        setRouteInfo({
+          distance: (route.summary.totalDistance / 1000).toFixed(2),
+          duration: Math.round(route.summary.totalTime / 60)
+        });
+      }
+      setLoading(false);
     });
     
-    setLoading(false);
+    routingControlRef.current.on('routingerror', (e) => {
+      setError('Failed to calculate route');
+      setLoading(false);
+    });
   }, [pointA, pointB]);
-
-  // Haversine formula to calculate distance between two points
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Radius of the Earth in kilometers
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  };
 
   useEffect(() => {
     if (pointA && pointB) {
@@ -163,7 +253,95 @@ const MapComponent = () => {
     }
   }, [pointA, pointB, calculateRoute]);
 
-  // Geocoding using Nominatim (OpenStreetMap)
+  const fetchSuggestions = async (query, setSuggestions) => {
+    if (!query.trim()) {
+      setSuggestions([]);
+      return;
+    }
+    
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`;
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        setSuggestions(data.map(item => ({
+          displayName: item.display_name,
+          lat: parseFloat(item.lat),
+          lon: parseFloat(item.lon)
+        })));
+      } else {
+        setSuggestions([]);
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      setSuggestions([]);
+    }
+  };
+
+  const handleSearchAChange = (e) => {
+    const value = e.target.value;
+    setSearchA(value);
+    debouncedFetchSuggestionsA(value);
+    setShowSuggestionsA(true);
+  };
+
+  const handleSearchBChange = (e) => {
+    const value = e.target.value;
+    setSearchB(value);
+    debouncedFetchSuggestionsB(value);
+    setShowSuggestionsB(true);
+  };
+
+  const selectSuggestion = (suggestion, isPointA) => {
+    const location = [suggestion.lat, suggestion.lon];
+    if (isPointA) {
+      setPointA(location);
+      setSearchA(suggestion.displayName);
+      setShowSuggestionsA(false);
+      searchARef.current.blur();
+    } else {
+      setPointB(location);
+      setSearchB(suggestion.displayName);
+      setShowSuggestionsB(false);
+      searchBRef.current.blur();
+    }
+    setCenter(location);
+    setZoom(12);
+  };
+
+  const handleSearchSubmit = async (e) => {
+    if (e) e.preventDefault();
+    setLoading(true);
+    setError('');
+    setShowSuggestionsA(false);
+    setShowSuggestionsB(false);
+    
+    try {
+      if (searchA && !pointA) {
+        const locationA = await geocodeLocation(searchA);
+        if (locationA) {
+          setPointA(locationA);
+        } else {
+          setError('Could not find location A');
+        }
+      }
+      
+      if (searchB && !pointB) {
+        const locationB = await geocodeLocation(searchB);
+        if (locationB) {
+          setPointB(locationB);
+        } else {
+          setError(prev => prev ? `${prev}, Could not find location B` : 'Could not find location B');
+        }
+      }
+    } catch (error) {
+      setError('Failed to find locations');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const geocodeLocation = async (query) => {
     if (!query.trim()) return null;
     
@@ -181,172 +359,211 @@ const MapComponent = () => {
     return null;
   };
 
-  const handleSearchSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    
-    try {
-      if (searchA) {
-        const locationA = await geocodeLocation(searchA);
-        if (locationA) {
-          setPointA(locationA);
-        } else {
-          setError('Could not find location A');
-        }
-      }
-      
-      if (searchB) {
-        const locationB = await geocodeLocation(searchB);
-        if (locationB) {
-          setPointB(locationB);
-        } else {
-          setError(prev => prev ? `${prev}, Could not find location B` : 'Could not find location B');
-        }
-      }
-    } catch (error) {
-      setError('Failed to find locations');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const clearRoute = () => {
     setPointA(currentLocation);
     setPointB(null);
-    setRoute(null);
     setRouteInfo(null);
     setSearchA('');
     setSearchB('');
     setError('');
+    setSuggestionsA([]);
+    setSuggestionsB([]);
+    removeRoutingControl();
   };
 
   return (
-    <div className="h-screen flex flex-col bg-white">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white shadow-lg border-b border-gray-200 relative">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-semibold text-gray-900">Route Planner</h1>
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                <Navigation className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  RouteMate
+                </h1>
+                <p className="text-xs text-gray-500 -mt-1">Smart Route Planning</p>
+              </div>
+            </div>
             <button
               onClick={logout}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 ease-in-out group"
             >
-              Logout
+              <LogOut className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" />
+              <span>Logout</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="bg-white shadow-sm p-4 z-10">
+      <div className="bg-white shadow-sm border-b border-gray-100 p-4 z-10">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Input Mode Toggle */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setInputMode('click')}
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  inputMode === 'click'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Click Mode
-              </button>
-              <button
-                onClick={() => setInputMode('search')}
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  inputMode === 'search'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Search Mode
-              </button>
-            </div>
-
-            {/* Search Inputs */}
-            {inputMode === 'search' && (
-              <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2 flex-1">
-                <input
-                  type="text"
-                  placeholder="Point A (or use current location)"
-                  value={searchA}
-                  onChange={(e) => setSearchA(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <input
-                  type="text"
-                  placeholder="Point B"
-                  value={searchB}
-                  onChange={(e) => setSearchB(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+          <div className="flex flex-col space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  onClick={() => setInputMode('click')}
+                  className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                    inputMode === 'click'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
                 >
-                  Search
+                  <MousePointer className="w-4 h-4" />
+                  <span>Click Mode</span>
                 </button>
-              </form>
-            )}
+                <button
+                  onClick={() => setInputMode('search')}
+                  className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                    inputMode === 'search'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  <Search className="w-4 h-4" />
+                  <span>Search Mode</span>
+                </button>
+              </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={getCurrentLocation}
-                className="px-3 py-2 text-sm font-medium bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-              >
-                My Location
-              </button>
-              <button
-                onClick={clearRoute}
-                className="px-3 py-2 text-sm font-medium bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
-              >
-                Clear
-              </button>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={getCurrentLocation}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-medium rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-105"
+                >
+                  <Locate className="w-4 h-4" />
+                  <span>My Location</span>
+                </button>
+                <button
+                  onClick={clearRoute}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-105"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Clear</span>
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Instructions and Route Info */}
-          <div className="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            {inputMode === 'click' && (
-              <p className="text-sm text-gray-600">
-                {!pointA ? 'Click on the map to set Point A' :
-                 !pointB ? 'Click on the map to set Point B' :
-                 'Click anywhere to start over'}
-              </p>
+            {inputMode === 'search' && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MapPin className="w-5 h-5 text-red-400" />
+                    </div>
+                    <input
+                      ref={searchARef}
+                      type="text"
+                      placeholder="Starting point (Point A)"
+                      value={searchA}
+                      onChange={handleSearchAChange}
+                      onFocus={() => setShowSuggestionsA(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestionsA(false), 200)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSearchSubmit(e)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm placeholder-gray-500"
+                    />
+                    {showSuggestionsA && suggestionsA.length > 0 && (
+                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-lg border border-gray-200 max-h-60 overflow-auto">
+                        {suggestionsA.map((suggestion, index) => (
+                          <div
+                            key={index}
+                            className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 border-b border-gray-100 last:border-b-0"
+                            onMouseDown={() => selectSuggestion(suggestion, true)}
+                          >
+                            {suggestion.displayName}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MapPin className="w-5 h-5 text-green-400" />
+                    </div>
+                    <input
+                      ref={searchBRef}
+                      type="text"
+                      placeholder="Destination (Point B)"
+                      value={searchB}
+                      onChange={handleSearchBChange}
+                      onFocus={() => setShowSuggestionsB(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestionsB(false), 200)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSearchSubmit(e)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm placeholder-gray-500"
+                    />
+                    {showSuggestionsB && suggestionsB.length > 0 && (
+                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-lg border border-gray-200 max-h-60 overflow-auto">
+                        {suggestionsB.map((suggestion, index) => (
+                          <div
+                            key={index}
+                            className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 border-b border-gray-100 last:border-b-0"
+                            onMouseDown={() => selectSuggestion(suggestion, false)}
+                          >
+                            {suggestion.displayName}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-center">
+                  <button
+                    onClick={handleSearchSubmit}
+                    disabled={loading}
+                    className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    <Search className="w-4 h-4" />
+                    <span>Find Route</span>
+                  </button>
+                </div>
+              </div>
             )}
-            
-            {routeInfo && (
-              <div className="flex gap-4 text-sm">
-                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-                  Distance: {routeInfo.distance} km
-                </span>
-                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full">
-                  Time: ~{routeInfo.duration} min
-                </span>
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              {inputMode === 'click' && (
+                <div className="flex items-center space-x-2 text-sm text-gray-600 bg-blue-50 px-3 py-2 rounded-lg">
+                  <MousePointer className="w-4 h-4 text-blue-500" />
+                  <span>
+                    {!pointA ? 'Click on the map to set starting point' :
+                     !pointB ? 'Click on the map to set destination' :
+                     'Click anywhere to start over'}
+                  </span>
+                </div>
+              )}
+              
+              {routeInfo && (
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg">
+                    <Route className="w-4 h-4" />
+                    <span className="font-medium">{routeInfo.distance} km</span>
+                  </div>
+                  <div className="flex items-center space-x-2 bg-green-50 text-green-700 px-4 py-2 rounded-lg">
+                    <Clock className="w-4 h-4" />
+                    <span className="font-medium">~{routeInfo.duration} min</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center space-x-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                <span>{error}</span>
               </div>
             )}
           </div>
-
-          {error && (
-            <div className="mt-2 bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-md text-sm">
-              {error}
-            </div>
-          )}
         </div>
       </div>
-
-      {/* Map */}
+      
       <div className="flex-1 relative">
         {loading && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-white rounded-lg shadow-lg p-3">
-            <div className="flex items-center gap-2">
+          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-[1000] bg-white rounded-xl shadow-lg p-4 border border-gray-200">
+            <div className="flex items-center space-x-3">
               <LoadingSpinner size="sm" />
-              <span className="text-sm text-gray-600">Loading...</span>
+              <span className="text-sm font-medium text-gray-700">Loading route...</span>
             </div>
           </div>
         )}
@@ -365,35 +582,22 @@ const MapComponent = () => {
           
           <MapClickHandler onMapClick={handleMapClick} inputMode={inputMode} />
 
-          {/* Current Location Marker */}
           {currentLocation && (
             <Marker position={currentLocation} icon={currentLocationIcon}>
               <Popup>Your current location</Popup>
             </Marker>
           )}
 
-          {/* Point A Marker */}
           {pointA && pointA !== currentLocation && (
-            <Marker position={pointA} icon={createCustomIcon('#10b981', 'A')}>
+            <Marker position={pointA} icon={createCustomIcon('#ef4444', 'A')}>
               <Popup>Point A</Popup>
             </Marker>
           )}
 
-          {/* Point B Marker */}
           {pointB && (
-            <Marker position={pointB} icon={createCustomIcon('#ef4444', 'B')}>
+            <Marker position={pointB} icon={createCustomIcon('#10b981', 'B')}>
               <Popup>Point B</Popup>
             </Marker>
-          )}
-
-          {/* Route Line */}
-          {route && (
-            <Polyline
-              positions={route}
-              color="#3b82f6"
-              weight={5}
-              opacity={0.8}
-            />
           )}
         </MapContainer>
       </div>
