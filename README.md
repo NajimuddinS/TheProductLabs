@@ -32,22 +32,50 @@ A React-based web app that allows **only authenticated users** to draw a route b
 ## 🗂️ Project Structure
 
 ```
+client/
+├── eslint.config.js
+├── index.html
+├── node_modules
+├── package-lock.json
+├── package.json
+├── postcss.config.js
 ├── public/
+├── README.md
 ├── src/
+│   ├── App.jsx
+│   ├── assets/
 │   ├── components/
-│   │   ├── Login.js
-│   │   ├── Map.js
-│   │   ├── RouteForm.js
-│   ├── services/
-│   │   ├── auth.js
-│   │   ├── api.js
-│   ├── App.js
-│   ├── index.js
-├── server/ (Node backend)
-│   ├── routes/
-│   ├── controllers/
-│   ├── models/
-│   ├── server.js
+│   │   ├── AuthForm.jsx
+│   │   ├── LoadingSpinner.jsx
+│   │   ├── MapContainer.jsx
+│   │   └── ProtectedRoute.jsx
+│   ├── contexts/
+│   │   └── AuthContext.jsx
+│   ├── index.css
+│   ├── main.jsx
+│   └── utils/
+│       └── axios.js
+├── tailwind.config.js
+├── vercel.json
+└── vite.config.js
+
+server/(Node Backend)
+├── config/
+├── controllers/
+│   ├── auth.controller.js
+│   └── home.controller.js
+├── middleware/
+│   └── auth.middleware.js
+├── models/
+│   └── user.js
+├── node_modules/
+├── package-lock.json
+├── package.json
+├── routes/
+│   ├── auth.routes.js
+│   └── home.routes.js
+└── server.js
+
 ```
 
 ## 🚀 Getting Started
