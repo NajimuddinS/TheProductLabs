@@ -61,6 +61,7 @@ client/
 
 server/(Node Backend)
 ├── config/
+│   └── db.js
 ├── controllers/
 │   ├── auth.controller.js
 │   └── home.controller.js
