@@ -478,129 +478,23 @@ const MapComponent = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              {/* Fancy Theme Toggle Button */}
+              {/* Theme Toggle Button */}
               <button
                 onClick={toggleTheme}
-                className={`px-8 py-3 rounded-full uppercase font-serif tracking-widest relative overflow-hidden group text-transparent cursor-pointer z-10 after:absolute after:rounded-full after:h-[85%] after:w-[95%] after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 hover:saturate-[1.15] active:saturate-[1.4] transition-all duration-500 ${
-                  mapTheme === "dark"
-                    ? "bg-gradient-to-r from-slate-800 to-blue-900 after:bg-slate-200"
-                    : "bg-gradient-to-r from-yellow-400 to-orange-500 after:bg-yellow-200"
-                }`}
+                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 ease-in-out group"
                 title={`Switch to ${
                   mapTheme === "light" ? "dark" : "light"
                 } theme`}
               >
-                <p
-                  className={`absolute z-40 text-xs font-semibold bg-clip-text text-transparent top-1/2 left-1/2 -translate-x-1/2 group-hover:-translate-y-full h-full w-full transition-all duration-300 -translate-y-[30%] tracking-widest ${
-                    mapTheme === "dark"
-                      ? "bg-gradient-to-r from-blue-300 to-purple-300"
-                      : "bg-gradient-to-r from-orange-600 to-red-500"
-                  }`}
-                >
-                  {mapTheme === "light" ? "DAY" : "NIGHT"}
-                </p>
-                <p
-                  className={`absolute z-40 text-xs top-1/2 left-1/2 bg-clip-text text-transparent -translate-x-1/2 translate-y-full h-full w-full transition-all duration-300 group-hover:-translate-y-[40%] tracking-widest font-extrabold ${
-                    mapTheme === "dark"
-                      ? "bg-gradient-to-r from-slate-400 to-blue-400"
-                      : "bg-gradient-to-r from-yellow-600 to-orange-700"
-                  }`}
-                >
-                  {mapTheme === "light" ? "NIGHT" : "DAY"}
-                </p>
-                {/* Sun or Moon SVG */}
                 {mapTheme === "light" ? (
-                  <svg
-                    className="absolute w-5 h-5 top-2 right-2 z-50 fill-yellow-300 animate-spin"
-                    style={{ animationDuration: "8s" }}
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z" />
-                    <circle cx="12" cy="12" r="4" />
-                  </svg>
+                  <Moon className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" />
                 ) : (
-                  <svg
-                    className="absolute w-5 h-5 top-2 right-2 z-50 fill-blue-200"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 3C16.97 3 21 7.03 21 12C21 16.97 16.97 21 12 21C7.03 21 3 16.97 3 12C3 11.36 3.08 10.75 3.22 10.17C5.27 11.37 7.77 11.81 10.17 11.22C13.5 10.42 16 7.5 16 4C16 3.65 15.97 3.31 15.91 2.98C14.68 2.36 13.38 2 12 3Z" />
-                  </svg>
+                  <Sun className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" />
                 )}
-                {/* Stars for Night Mode */}
-                {mapTheme === "dark" && (
-                  <>
-                    <div className="absolute w-1 h-1 bg-white rounded-full top-2 left-2 z-50 animate-pulse"></div>
-                    <div
-                      className="absolute w-1 h-1 bg-white rounded-full top-4 left-6 z-50 animate-pulse"
-                      style={{ animationDelay: "0.5s" }}
-                    ></div>
-                    <div
-                      className="absolute w-1 h-1 bg-white rounded-full top-6 left-4 z-50 animate-pulse"
-                      style={{ animationDelay: "1s" }}
-                    ></div>
-                  </>
-                )}
-                {/* Background Wave */}
-                <svg
-                  className="absolute w-full h-full scale-x-125 rotate-180 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 group-hover:animate-none animate-pulse group-hover:-translate-y-[45%] transition-all duration-300"
-                  viewBox="0 0 2400 800"
-                >
-                  <defs>
-                    <linearGradient
-                      id="bg-grad-toggle"
-                      y2="100%"
-                      x2="50%"
-                      y1="0%"
-                      x1="50%"
-                    >
-                      {mapTheme === "dark" ? (
-                        <>
-                          <stop
-                            offset="0%"
-                            stopOpacity="1"
-                            stopColor="hsl(220, 80%, 30%)"
-                          />
-                          <stop
-                            offset="100%"
-                            stopOpacity="1"
-                            stopColor="hsl(250, 60%, 20%)"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <stop
-                            offset="0%"
-                            stopOpacity="1"
-                            stopColor="hsl(45, 100%, 70%)"
-                          />
-                          <stop
-                            offset="100%"
-                            stopOpacity="1"
-                            stopColor="hsl(25, 90%, 60%)"
-                          />
-                        </>
-                      )}
-                    </linearGradient>
-                  </defs>
-                  <g fill="url(#bg-grad-toggle)">
-                    <path
-                      opacity="1"
-                      d="M 0 300 Q 400 400 800 300 Q 1200 200 1600 300 Q 2000 400 2400 300 L 2400 800 L 0 800 Z"
-                    />
-                  </g>
-                </svg>
-                {/* Foreground Wave */}
-                <svg
-                  className={`absolute w-full h-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-[30%] group-hover:-translate-y-[33%] group-hover:scale-95 transition-all duration-500 z-40 ${
-                    mapTheme === "dark" ? "fill-blue-600" : "fill-orange-500"
-                  }`}
-                  viewBox="0 0 1440 320"
-                >
-                  <path d="M0,288L48,250.7C96,213,192,139,288,133.3C384,128,480,192,576,224C672,256,768,256,864,256C960,256,1056,256,1152,250.7C1248,245,1344,235,1440,213.3L1440,320L1344,320C1248,320,1056,320,864,320C672,320,480,320,288,320C192,320,96,320,48,320L0,320Z" />
-                </svg>
+                <span className="hidden sm:inline">
+                  {mapTheme === "light" ? "Night" : "Day"}
+                </span>
               </button>
-
-              {/* Logout Button */}
               <button
                 onClick={logout}
                 className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 ease-in-out group"
@@ -802,7 +696,7 @@ const MapComponent = () => {
 
         <MapContainer
           ref={mapRef}
-          center={center || [12.9716, 77.5946]}
+          center={center || [12.9716,77.5946]}
           zoom={zoom}
           style={{ height: "100%", width: "100%" }}
           className={`z-0 ${mapTheme === "dark" ? "dark-theme" : ""}`}
