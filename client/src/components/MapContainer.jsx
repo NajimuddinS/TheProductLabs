@@ -17,6 +17,8 @@ import {
   Clock,
   Route,
   Locate,
+  Sun,
+  Moon,
 } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -108,6 +110,24 @@ const MapClickHandler = ({ onMapClick, inputMode }) => {
   return null;
 };
 
+// Theme configurations
+const MAP_THEMES = {
+  light: {
+    name: "Day",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    className: "",
+  },
+  dark: {
+    name: "Night",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    className: "dark-theme-tiles",
+  },
+};
+
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -122,8 +142,9 @@ function debounce(func, wait) {
 
 const MapComponent = () => {
   const { logout } = useAuth();
-  const [center, setCenter] = useState([12.9716, 77.5946]);
+  const [center, setCenter] = useState(null);
   const [zoom, setZoom] = useState(10);
+  const [mapTheme, setMapTheme] = useState("light");
 
   const [currentLocation, setCurrentLocation] = useState(null);
   const [pointA, setPointA] = useState(null);
@@ -171,18 +192,29 @@ const MapComponent = () => {
           ];
           setCurrentLocation(location);
           setPointA(location);
-          setCenter(location);
+          // Only set center if it's null (initial load)
+          if (center === null) {
+            setCenter(location);
+          }
           setZoom(12);
           setLoading(false);
         },
         (error) => {
           console.error("Error getting location:", error);
+          // If geolocation fails, fall back to default center
+          if (center === null) {
+            setCenter([12.9716, 77.5946]); // Default to Bangalore coordinates
+          }
           setError("Unable to get current location");
           setLoading(false);
         }
       );
     } else {
       setError("Geolocation is not supported by this browser");
+      // If geolocation isn't supported, fall back to default center
+      if (center === null) {
+        setCenter([12.9716, 77.5946]); // Default to Bangalore coordinates
+      }
       setLoading(false);
     }
   };
@@ -394,8 +426,40 @@ const MapComponent = () => {
     removeRoutingControl();
   };
 
+  const toggleTheme = () => {
+    setMapTheme((prev) => (prev === "light" ? "dark" : "light"));
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
+      {/* Add custom CSS for dark theme */}
+      <style jsx>{`
+        .dark-theme-tiles {
+          filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+
+        .leaflet-container.dark-theme .leaflet-control-zoom-in,
+        .leaflet-container.dark-theme .leaflet-control-zoom-out,
+        .leaflet-container.dark-theme .leaflet-control-attribution {
+          filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+          background-color: #374151;
+          color: #f9fafb;
+        }
+
+        .leaflet-container.dark-theme .leaflet-control-attribution a {
+          color: #60a5fa;
+        }
+
+        .leaflet-container.dark-theme .leaflet-popup-content-wrapper,
+        .leaflet-container.dark-theme .leaflet-popup-tip {
+          background-color: #374151;
+          color: #f9fafb;
+        }
+
+        .leaflet-container.dark-theme .leaflet-popup-content-wrapper {
+          box-shadow: 0 3px 14px rgba(0, 0, 0, 0.8);
+        }
+      `}</style>
       {/* Header */}
       <div className="bg-white shadow-lg border-b border-gray-200 relative">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -413,13 +477,32 @@ const MapComponent = () => {
                 </p>
               </div>
             </div>
-            <button
-              onClick={logout}
-              className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 ease-in-out group"
-            >
-              <LogOut className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" />
-              <span>Logout</span>
-            </button>
+            <div className="flex items-center space-x-3">
+              {/* Theme Toggle Button */}
+              <button
+                onClick={toggleTheme}
+                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 ease-in-out group"
+                title={`Switch to ${
+                  mapTheme === "light" ? "dark" : "light"
+                } theme`}
+              >
+                {mapTheme === "light" ? (
+                  <Moon className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" />
+                ) : (
+                  <Sun className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" />
+                )}
+                <span className="hidden sm:inline">
+                  {mapTheme === "light" ? "Night" : "Day"}
+                </span>
+              </button>
+              <button
+                onClick={logout}
+                className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 ease-in-out group"
+              >
+                <LogOut className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -562,7 +645,7 @@ const MapComponent = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               {inputMode === "click" && (
                 <div className="flex items-center space-x-2 text-sm text-gray-600 bg-blue-50 px-3 py-2 rounded-lg">
-                  <MousePointer className="w-4 h-4 text-blue-500" />
+                  <MousePointer className="w-4 h-4 text-blue-600" />
                   <span>
                     {!pointA
                       ? "Click on the map to set starting point"
@@ -613,14 +696,16 @@ const MapComponent = () => {
 
         <MapContainer
           ref={mapRef}
-          center={center}
+          center={center || [12.9716,77.5946]}
           zoom={zoom}
           style={{ height: "100%", width: "100%" }}
-          className="z-0"
+          className={`z-0 ${mapTheme === "dark" ? "dark-theme" : ""}`}
+          key={mapTheme} // Force re-render when theme changes
         >
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url={MAP_THEMES[mapTheme].url}
+            attribution={MAP_THEMES[mapTheme].attribution}
+            className={MAP_THEMES[mapTheme].className}
           />
 
           <MapClickHandler onMapClick={handleMapClick} inputMode={inputMode} />
