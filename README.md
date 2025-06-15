@@ -1,4 +1,4 @@
-# 🚀 RouteMate
+# 📍 RouteMate
 
 A React-based web app that allows **only authenticated users** to draw a route between two points on a map.
 
