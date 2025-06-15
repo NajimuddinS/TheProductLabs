@@ -66,7 +66,7 @@ const Services = () => {
         <div className="text-center mt-16">
           <button
             onClick={() => navigate('/login')}
-            className="btn-primary text-lg py-3 px-8"
+            className="btn-primary text-lg py-3 px-8 bg-blue-700 rounded-2xl text-white"
           >
             Explore All Features
           </button>
