@@ -1,56 +1,72 @@
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { MapPin, Mail, Lock, User, Eye, EyeOff, ArrowRight, Loader2, Navigation, Route } from 'lucide-react';
+import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import {
+  MapPin,
+  Mail,
+  Lock,
+  User,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Loader2,
+  Navigation,
+  Route,
+  House,
+} from "lucide-react";
 
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: ''
+    username: "",
+    email: "",
+    password: "",
   });
   const { login, signup, loading, error, clearError } = useAuth();
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     clearError();
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       if (isLogin) {
         const result = await login(formData.email, formData.password);
         if (result.success) {
           // Navigate to protected route after successful login
-          navigate('/map');
+          navigate("/map");
         }
       } else {
-        const result = await signup(formData.username, formData.email, formData.password);
+        const result = await signup(
+          formData.username,
+          formData.email,
+          formData.password
+        );
         if (result.success) {
           // After successful signup, switch to login mode
           setIsLogin(true);
-          setFormData({ username: '', email: '', password: '' });
+          setFormData({ username: "", email: "", password: "" });
           // Optionally show success message or auto-login
         }
       }
     } catch (error) {
       // Error handling is managed by the auth context
-      console.error('Authentication error:', error);
+      console.error("Authentication error:", error);
     }
   };
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
-    setFormData({ username: '', email: '', password: '' });
+    setFormData({ username: "", email: "", password: "" });
     clearError();
   };
 
@@ -69,16 +85,26 @@ const AuthForm = () => {
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl mb-6 shadow-lg">
-              <Navigation className="w-8 h-8 text-white" />
+          <div className="flex justify-center mb-8">
+            {" "}
+            {/* Centers the entire block */}
+            <div onClick={() => navigate('/home')} className="flex cursor-pointer items-start">
+              {" "}
+              {/* Keeps logo left + text right internally */}
+              {/* Logo on the left */}
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl shadow-lg flex items-center justify-center mr-4">
+                <Navigation className="w-8 h-8 text-white" />
+              </div>
+              {/* Text on the right */}
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-1 tracking-tight">
+                  RouteMate
+                </h1>
+                <p className="text-slate-400 text-sm">
+                  Discover the world, one route at a time
+                </p>
+              </div>
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-              RouteMate
-            </h1>
-            <p className="text-slate-400 text-sm">
-              Discover the world, one route at a time
-            </p>
           </div>
 
           {/* Main Form Card */}
@@ -87,14 +113,13 @@ const AuthForm = () => {
               <div className="flex items-center justify-center space-x-2 mb-4">
                 <MapPin className="w-6 h-6 text-blue-400" />
                 <h2 className="text-2xl font-bold text-white">
-                  {isLogin ? 'Discover' : 'Start Your Journey'}
+                  {isLogin ? "Discover" : "Start Your Journey"}
                 </h2>
               </div>
               <p className="text-slate-300 text-sm">
-                {isLogin 
-                  ? 'Sign in to access your personalized routes' 
-                  : 'Create an account to begin exploring'
-                }
+                {isLogin
+                  ? "Sign in to access your personalized routes"
+                  : "Create an account to begin exploring"}
               </p>
             </div>
 
@@ -102,7 +127,10 @@ const AuthForm = () => {
               {/* Username Field (Signup only) */}
               {!isLogin && (
                 <div className="group">
-                  <label htmlFor="username" className="block text-sm font-medium text-slate-200 mb-2">
+                  <label
+                    htmlFor="username"
+                    className="block text-sm font-medium text-slate-200 mb-2"
+                  >
                     Username
                   </label>
                   <div className="relative">
@@ -125,7 +153,10 @@ const AuthForm = () => {
 
               {/* Email Field */}
               <div className="group">
-                <label htmlFor="email" className="block text-sm font-medium text-slate-200 mb-2">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-slate-200 mb-2"
+                >
                   Email Address
                 </label>
                 <div className="relative">
@@ -147,7 +178,10 @@ const AuthForm = () => {
 
               {/* Password Field */}
               <div className="group">
-                <label htmlFor="password" className="block text-sm font-medium text-slate-200 mb-2">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-slate-200 mb-2"
+                >
                   Password
                 </label>
                 <div className="relative">
@@ -157,7 +191,7 @@ const AuthForm = () => {
                   <input
                     id="password"
                     name="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     required
                     value={formData.password}
                     onChange={handleInputChange}
@@ -169,7 +203,11 @@ const AuthForm = () => {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-white transition-colors"
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -196,12 +234,12 @@ const AuthForm = () => {
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
                       <span>
-                        {isLogin ? 'Signing In...' : 'Creating Account...'}
+                        {isLogin ? "Signing In..." : "Creating Account..."}
                       </span>
                     </>
                   ) : (
                     <>
-                      <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+                      <span>{isLogin ? "Sign In" : "Create Account"}</span>
                       <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
@@ -221,10 +259,22 @@ const AuthForm = () => {
                   <span className="flex items-center justify-center space-x-2">
                     <Route className="w-4 h-4" />
                     <span>
-                      {isLogin 
-                        ? "New to RouteNavigator? Join us" 
-                        : "Already exploring? Welcome back"
-                      }
+                      {isLogin
+                        ? "New to RouteMate? Join us"
+                        : "Already exploring? Welcome back"}
+                    </span>
+                  </span>
+                </button>
+                <br />
+                <button
+                  type="button"
+                  onClick={() => navigate('/home')}
+                  className="text-slate-300 hover:text-white text-xs font-medium mt-4 transition-colors group"
+                >
+                  <span className="flex items-center justify-center space-x-2">
+                    <House className="w-4 h-4" />
+                    <span>
+                      {"Back to Home"}
                     </span>
                   </span>
                 </button>

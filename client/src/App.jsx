@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthForm from './components/AuthForm';
 import MapContainer from './components/MapContainer';
 import ProtectedRoute from './components/ProtectedRoute';
+import Home from './components/Home'; // ✅ Import your new Home component
 
 const LoadingScreen = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -13,7 +14,6 @@ const LoadingScreen = () => (
 const AppRouter = () => {
   const { user, loading, isInitialized } = useAuth();
 
-  // Show loading screen while initial auth check is happening
   if (!isInitialized || loading) {
     return <LoadingScreen />;
   }
@@ -33,8 +33,12 @@ const AppRouter = () => {
         } 
       />
       <Route 
+        path="/home" 
+        element={<Home />} // ✅ This is your new non-protected route
+      />
+      <Route 
         path="/" 
-        element={<Navigate to={user ? "/map" : "/login"} replace />} 
+        element={<Navigate to="/home" replace />} // ✅ Default to /home
       />
     </Routes>
   );

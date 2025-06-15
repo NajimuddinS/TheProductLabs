@@ -491,7 +491,7 @@ const MapComponent = () => {
                 } theme`}
               >
                 <p
-                  className={`absolute z-40 text-xs font-semibold bg-clip-text text-transparent top-1/2 left-1/2 -translate-x-1/2 group-hover:-translate-y-full h-full w-full transition-all duration-300 -translate-y-[30%] tracking-widest ${
+                  className={`absolute z-40 text-xs font-semibold font-sans bg-clip-text text-transparent top-1/2 left-1/2 -translate-x-1/2 group-hover:-translate-y-full h-full w-full transition-all duration-300 -translate-y-[30%] tracking-widest ${
                     mapTheme === "dark"
                       ? "bg-gradient-to-r from-blue-300 to-purple-300"
                       : "bg-gradient-to-r from-orange-600 to-red-500"
