@@ -14,8 +14,8 @@ const Services = () => {
     {
       icon: Compass,
       title: 'Navigation Assistance',
-      description: 'Turn-by-turn navigation with voice guidance and visual cues to help you reach your destination safely.',
-      features: ['Voice navigation', 'Lane guidance', 'Speed alerts']
+      description: 'Turn-by-turn navigation with visual cues to help you reach your destination safely.',
+      features: ['Two Pointer navigation', 'Lane guidance', 'Speed alerts']
     },
     {
       icon: Shield,
