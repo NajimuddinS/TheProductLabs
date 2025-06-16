@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthForm from './components/AuthForm';
 import MapContainer from './components/MapContainer';
 import ProtectedRoute from './components/ProtectedRoute';
-import Home from './components/Home'; // ✅ Import your new Home component
+import Home from './components/Home';
 
 const LoadingScreen = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -34,11 +34,11 @@ const AppRouter = () => {
       />
       <Route 
         path="/home" 
-        element={<Home />} // ✅ This is your new non-protected route
+        element={<Home />}
       />
       <Route 
         path="/" 
-        element={<Navigate to="/home" replace />} // ✅ Default to /home
+        element={<Navigate to="/home" replace />}
       />
     </Routes>
   );
