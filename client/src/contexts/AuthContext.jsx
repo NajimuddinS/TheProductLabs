@@ -15,9 +15,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isInitialized, setIsInitialized] = useState(false); // New state to track initialization
+  const [isInitialized, setIsInitialized] = useState(false); 
 
-  // Check if user is authenticated on app load
   useEffect(() => {
     checkAuthStatus();
   }, []);
@@ -40,7 +39,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
     } finally {
       setLoading(false);
-      setIsInitialized(true); // Mark as initialized after first auth check
+      setIsInitialized(true);
     }
   };
 
